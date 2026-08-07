@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import { apiRateLimiter } from './middleware/rate-limit.middleware.js';
 import { authRouter } from './routes/auth.routes.js';
 import { onboardingRouter } from './routes/onboarding.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
@@ -12,8 +14,12 @@ import { locationRouter } from './routes/location.routes.js';
 
 export const app = express();
 
+app.use(helmet());
 app.use(cors());
 app.use(express.json());
+
+// Apply rate limiting globally to all /api/v1 routes (except auth login which has stricter limits)
+app.use('/api/v1', apiRateLimiter);
 
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/onboarding', onboardingRouter);
