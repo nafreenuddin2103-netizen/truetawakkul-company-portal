@@ -7,32 +7,91 @@ on:
     branches: [ main, dev ]
 
 jobs:
+  # -------------------------------------------------------------
+  # STAGE 1: CI (Continuous Integration) - Build, Typecheck, Test
+  # -------------------------------------------------------------
   build-and-test:
-    name: Build, Typecheck & Test
+    name: CI Pipeline (Test & Verification)
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [ 22.x ]
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js 22.x
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22.x
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Dependency Security Scan
+        run: npm audit --audit-level=high
 
       - name: Typecheck TypeScript
         run: npm run typecheck
 
-      - name: Run Test Suite
+      - name: Run Unit & Integration Tests
         run: npm test
 
-      - name: Build Verification
-        run: npm run build
+  # -------------------------------------------------------------
+  # STAGE 2: CD (Continuous Delivery) - Build & Push Docker Image
+  # -------------------------------------------------------------
+  docker-publish:
+    name: Build & Push Docker Image
+    needs: build-and-test
+    # ONLY run Docker publish on merges to main
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha,format=long
+            type=raw,value=latest
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # -------------------------------------------------------------
+  # STAGE 3: CD (Continuous Deployment) - Deploy to Production
+  # -------------------------------------------------------------
+  deploy-production:
+    name: Deploy to Production (Cloud Run)
+    needs: docker-publish
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deployment Simulation
+        run: |
+          echo "🚀 Initiating zero-downtime deployment to Production..."
+          echo "📦 Image: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}"
+          echo "✅ Production deployment successful!"

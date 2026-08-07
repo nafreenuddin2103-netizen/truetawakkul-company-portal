@@ -3,6 +3,7 @@ import cors from 'cors';
 import compression from 'compression';
 import helmet from 'helmet';
 import { apiRateLimiter } from './middleware/rate-limit.middleware.js';
+import { requestIdMiddleware } from './middleware/request-id.middleware.js';
 import { authRouter } from './routes/auth.routes.js';
 import { onboardingRouter } from './routes/onboarding.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
@@ -19,6 +20,7 @@ export const app = express();
 // Trust reverse proxy for rate limiting (e.g., Cloud Run, Nginx, ALB)
 app.set('trust proxy', 1);
 
+app.use(requestIdMiddleware);
 app.use(helmet());
 app.use(compression());
 app.use(cors({
