@@ -1,0 +1,11 @@
+export enum AssignmentType {
+  PRIMARY_ADMIN = 'PRIMARY_ADMIN',
+  SECONDARY_ADMIN = 'SECONDARY_ADMIN',
+  DELEGATED_OPERATOR = 'DELEGATED_OPERATOR'
+}
+
+export enum AssignmentStatus {
+  ACTIVE = 'ACTIVE',
+  REVOKED = 'REVOKED',
+  EXPIRED = 'EXPIRED'
+}

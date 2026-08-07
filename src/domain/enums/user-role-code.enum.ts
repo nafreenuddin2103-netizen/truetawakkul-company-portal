@@ -1,0 +1,4 @@
+export enum UserRoleCode {
+  COMPANY_SUPER_ADMIN = 'COMPANY_SUPER_ADMIN',
+  MOSQUE_ADMIN = 'MOSQUE_ADMIN'
+}

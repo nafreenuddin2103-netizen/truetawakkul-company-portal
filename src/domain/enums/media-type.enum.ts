@@ -1,0 +1,11 @@
+export enum MediaType {
+  LOGO = 'LOGO',
+  COVER_IMAGE = 'COVER_IMAGE',
+  GALLERY = 'GALLERY'
+}
+
+export enum MediaStatus {
+  PENDING_MODERATION = 'PENDING_MODERATION',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED'
+}

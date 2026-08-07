@@ -1,0 +1,244 @@
+{
+  "info": {
+    "_postman_id": "a9b8c7d6-e5f4-3210-fedc-ba9876543210",
+    "name": "TrueTawakkul Company Portal API Suite",
+    "description": "Production-grade OpenAPI collection for TrueTawakkul Company Portal (Authentication, Onboarding, Idempotency, Concurrency Control, and Operational Metrics)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Super Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('JWT token is returned', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('accessToken');",
+                  "    pm.environment.set('jwt_token', jsonData.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobilePhone\": \"+919999999999\",\n  \"password\": \"SuperAdminSecret123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Onboarding Draft Engine",
+      "item": [
+        {
+          "name": "Step 1: Init Application (Geocode / Dup Check)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Application ID extracted', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('applicationId');",
+                  "    pm.environment.set('application_id', jsonData.applicationId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "idem-init-{{$randomUUID}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"googleMapsUrl\": \"https://maps.google.com/?q=12.9715987,77.5945627\",\n  \"masjidNameEnglish\": \"Masjid Taqwa Bengaluru\",\n  \"city\": \"Bengaluru\",\n  \"state\": \"Karnataka\",\n  \"country\": \"India\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/onboarding",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "onboarding"]
+            }
+          }
+        },
+        {
+          "name": "Patch Application Draft (Partial Auto-Save)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "idem-patch-{{$randomUUID}}",
+                "type": "text"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{if_match_version}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contactPersonName\": \"Imam Abdul Rahman\",\n  \"estimatedCapacity\": 1200\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/onboarding/{{application_id}}/draft",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "onboarding", "{{application_id}}", "draft"]
+            }
+          }
+        },
+        {
+          "name": "Step 2: Save Masjid Details",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "idem-step2-{{$randomUUID}}",
+                "type": "text"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{if_match_version}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameEnglish\": \"Masjid Taqwa Jamia\",\n  \"category\": \"JAMIA_MASJID\",\n  \"capacity\": 1500,\n  \"addressLine1\": \"12 MG Road\",\n  \"city\": \"Bengaluru\",\n  \"state\": \"Karnataka\",\n  \"country\": \"India\",\n  \"timezone\": \"Asia/Kolkata\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/onboarding/{{application_id}}/step/2",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "onboarding", "{{application_id}}", "step", "2"]
+            }
+          }
+        },
+        {
+          "name": "Get Application Details",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/onboarding/{{application_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "onboarding", "{{application_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Operations & System",
+      "item": [
+        {
+          "name": "Get Operational Dashboard Metrics",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/metrics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "metrics"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

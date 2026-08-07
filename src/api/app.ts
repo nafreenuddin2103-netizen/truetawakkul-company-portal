@@ -1,0 +1,32 @@
+import express from 'express';
+import cors from 'cors';
+import { authRouter } from './routes/auth.routes.js';
+import { onboardingRouter } from './routes/onboarding.routes.js';
+import { errorHandler } from './middleware/error.middleware.js';
+import { GetOperationalMetricsUseCase } from '../application/use-cases/operations/get-operational-metrics.usecase.js';
+import { authenticate } from './middleware/authenticate.middleware.js';
+import { authorize } from './middleware/authorize.middleware.js';
+import { UserRoleCode } from '../domain/enums/user-role-code.enum.js';
+
+import { locationRouter } from './routes/location.routes.js';
+
+export const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/onboarding', onboardingRouter);
+app.use('/api/v1/location', locationRouter);
+
+const metricsUseCase = new GetOperationalMetricsUseCase();
+app.get('/api/v1/metrics', authenticate, authorize(UserRoleCode.COMPANY_SUPER_ADMIN), async (_req, res, next) => {
+  try {
+    const result = await metricsUseCase.execute();
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.use(errorHandler);

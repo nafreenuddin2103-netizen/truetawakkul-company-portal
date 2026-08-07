@@ -1,0 +1,57 @@
+name: TrueTawakkul Company Portal CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  verify:
+    name: Build, Lint & Test Verification
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgis/postgis:15-3.3
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: truetawakkul_portal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: truetawakkul-company-portal/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          cd truetawakkul-company-portal
+          npm ci
+
+      - name: TypeScript Type Check
+        run: |
+          cd truetawakkul-company-portal
+          npm run typecheck
+
+      - name: Run Unit Tests
+        run: |
+          cd truetawakkul-company-portal
+          npm test
+
+      - name: Validate Genesis Migration DDL
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d truetawakkul_portal -f truetawakkul-company-portal/supabase/migrations/20260807000000_genesis.sql
