@@ -7,6 +7,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(4000),
   NODE_ENV: z.enum(['development', 'staging', 'production', 'test']).default('development'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  FRONTEND_URL: z.string().url().default('http://localhost:3001'),
 
   DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5432/truetawakkul_portal'),
   DATABASE_MAX_CONNECTIONS: z.coerce.number().default(20),

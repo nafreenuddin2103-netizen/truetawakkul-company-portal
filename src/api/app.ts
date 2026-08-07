@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import helmet from 'helmet';
 import { apiRateLimiter } from './middleware/rate-limit.middleware.js';
 import { authRouter } from './routes/auth.routes.js';
@@ -11,11 +12,19 @@ import { authorize } from './middleware/authorize.middleware.js';
 import { UserRoleCode } from '../domain/enums/user-role-code.enum.js';
 
 import { locationRouter } from './routes/location.routes.js';
+import { env } from '../config/env.js';
 
 export const app = express();
 
+// Trust reverse proxy for rate limiting (e.g., Cloud Run, Nginx, ALB)
+app.set('trust proxy', 1);
+
 app.use(helmet());
-app.use(cors());
+app.use(compression());
+app.use(cors({
+  origin: env.FRONTEND_URL,
+  credentials: true
+}));
 app.use(express.json());
 
 // Apply rate limiting globally to all /api/v1 routes (except auth login which has stricter limits)
