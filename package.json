@@ -8,7 +8,7 @@
     "dev": "cmd /c npx tsx watch src/server.ts",
     "start": "node dist/server.js",
     "test": "vitest run",
-    "test:unit": "vitest run tests/unit",
+    "test:unit": "vitest run src",
     "test:integration": "vitest run tests/integration",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -24,6 +24,7 @@
   "author": "TrueTawakkul Engineering",
   "license": "UNLICENSED",
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.2",
     "argon2": "^0.40.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",

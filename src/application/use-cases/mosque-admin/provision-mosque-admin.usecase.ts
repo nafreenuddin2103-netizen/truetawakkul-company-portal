@@ -75,28 +75,14 @@ export class ProvisionMosqueAdminUseCase {
         [dto.masjidId, userId, dto.creatorId]
       );
 
-      await client.query(
-        `INSERT INTO app.notification_outbox (
-          recipient_user_id, channel, template_code, payload, idempotency_key
-        ) VALUES ($1, 'WHATSAPP', 'CREDENTIAL_WELCOME', $2::jsonb, $3)`,
-        [
-          userId,
-          JSON.stringify({
-            fullName: dto.fullName,
-            mobilePhone: dto.mobilePhone,
-            tempPassword
-          }),
-          `outbox-provision-${userId}`
-        ]
-      );
 
       return {
         userId,
         fullName: dto.fullName,
         mobilePhone: dto.mobilePhone,
         masjidId: dto.masjidId,
-        temporaryPasswordEnqueued: true
       };
+
     });
   }
 }

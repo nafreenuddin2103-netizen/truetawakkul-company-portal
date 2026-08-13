@@ -11,6 +11,11 @@ export interface InitApplicationDTO {
   city?: string;
   state?: string;
   country?: string;
+  googlePlaceId?: string;
+  website?: string;
+  phone?: string;
+  googleMetadata?: any;
+  googlePhotos?: any[];
   creatorId: string;
 }
 
@@ -56,17 +61,63 @@ export class InitOnboardingApplicationUseCase {
     const country = dto.country ?? 'India';
 
     return await db.withTransaction(async (client) => {
+      // 1. Insert or Update Masjid idempotently
+      let masjidId: string;
       const masjidRes = await client.query(
-        `INSERT INTO app.masjids (
+        `INSERT INTO app.masjid (
           name_english, city, state, country, address_line1, timezone,
-          latitude, longitude, location, created_by, status, governance_state
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, ST_SetSRID(ST_MakePoint($8, $7), 4326), $9, 'INACTIVE', 'COMPANY_MANAGED')
+          latitude, longitude, location, created_by, status, governance_state,
+          google_place_id, website, phone, google_metadata, source, google_last_synced_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, ST_SetSRID(ST_MakePoint($8, $7), 4326), $9, 'INACTIVE', 'COMPANY_MANAGED', $10, $11, $12, $13, $14, NOW())
+        ON CONFLICT (google_place_id) DO UPDATE SET
+          name_english = EXCLUDED.name_english,
+          city = EXCLUDED.city,
+          state = EXCLUDED.state,
+          country = EXCLUDED.country,
+          address_line1 = EXCLUDED.address_line1,
+          latitude = EXCLUDED.latitude,
+          longitude = EXCLUDED.longitude,
+          location = EXCLUDED.location,
+          website = COALESCE(EXCLUDED.website, app.masjid.website),
+          phone = COALESCE(EXCLUDED.phone, app.masjid.phone),
+          google_metadata = EXCLUDED.google_metadata,
+          google_last_synced_at = NOW()
         RETURNING id`,
-        [name, city, state, country, 'Pending Address', 'Asia/Kolkata', coords.latitude, coords.longitude, dto.creatorId]
+        [
+          name, city, state, country, 'Pending Address', 'Asia/Kolkata', 
+          coords.latitude, coords.longitude, dto.creatorId,
+          dto.googlePlaceId || null, dto.website || null, dto.phone || null,
+          dto.googleMetadata ? JSON.stringify(dto.googleMetadata) : '{}',
+          dto.googlePlaceId ? 'GOOGLE_PLACES' : 'MANUAL'
+        ]
       );
 
-      const masjidId = masjidRes.rows[0].id;
+      masjidId = masjidRes.rows[0].id;
 
+      // 2. Insert Photos (Clear old photos first if it's an update, or just append)
+      if (dto.googlePlaceId && dto.googlePhotos && dto.googlePhotos.length > 0) {
+        await client.query(`DELETE FROM app.masjid_google_photos WHERE masjid_id = $1`, [masjidId]);
+        
+        for (let i = 0; i < dto.googlePhotos.length; i++) {
+          const photo = dto.googlePhotos[i];
+          // Google Places API returns 'name' as places/PLACE_ID/photos/PHOTO_REFERENCE
+          const photoRef = photo.name || photo.photo_reference || 'unknown';
+          await client.query(
+            `INSERT INTO app.masjid_google_photos (masjid_id, google_place_id, photo_reference, width, height, display_order)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [masjidId, dto.googlePlaceId, photoRef, photo.widthPx || photo.width || 0, photo.heightPx || photo.height || 0, i]
+          );
+        }
+      }
+
+      // 3. Insert Import History
+      await client.query(
+        `INSERT INTO app.masjid_import_history (masjid_id, source, google_place_id, imported_by, status)
+         VALUES ($1, $2, $3, $4, 'SUCCESS')`,
+        [masjidId, dto.googlePlaceId ? 'GOOGLE_PLACES' : 'MANUAL', dto.googlePlaceId || null, dto.creatorId]
+      );
+
+      // 4. Create Draft Onboarding Application
       const appRes = await client.query(
         `INSERT INTO app.onboarding_applications (
           application_number, masjid_id, status, current_step,

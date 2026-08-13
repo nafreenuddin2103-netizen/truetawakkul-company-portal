@@ -35,3 +35,15 @@ export const apiRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Password Reset: Max 3 attempts per hour per IP
+export const passwordResetRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  message: {
+    success: false,
+    error: 'Too many password reset attempts. Please try again after 1 hour.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
