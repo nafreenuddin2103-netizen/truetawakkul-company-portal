@@ -29,22 +29,9 @@ export class ResendCredentialsUseCase {
         [userId]
       );
 
-      await client.query(
-        `INSERT INTO app.notification_outbox (
-          recipient_user_id, channel, template_code, payload, idempotency_key
-        ) VALUES ($1, 'WHATSAPP', 'CREDENTIAL_RESEND', $2::jsonb, $3)`,
-        [
-          userId,
-          JSON.stringify({
-            fullName: String(user.full_name),
-            mobilePhone: String(user.mobile_phone),
-            tempPassword: newTempPassword
-          }),
-          `outbox-resend-${userId}-${Date.now()}`
-        ]
-      );
 
       return {
+
         userId,
         mobilePhone: String(user.mobile_phone),
         message: 'New temporary credentials generated and queued for WhatsApp delivery.'

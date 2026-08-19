@@ -23,20 +23,9 @@ export class SendWhatsappOtpUseCase {
 
       const otpId = String(otpRes.rows[0].id);
 
-      await client.query(
-        `INSERT INTO app.notification_outbox (
-          recipient_user_id, channel, template_code, payload, idempotency_key
-        ) SELECT id, 'WHATSAPP', 'OTP_VERIFICATION', $2::jsonb, $3
-          FROM app.users WHERE mobile_phone = $1 OR whatsapp_phone = $1
-          LIMIT 1`,
-        [
-          dto.phone,
-          JSON.stringify({ otp: rawOtp, expiresMinutes: env.OTP_EXPIRY_MINUTES }),
-          `outbox-otp-${otpId}`
-        ]
-      );
 
       return {
+
         otpId,
         expiresAt,
         message: 'WhatsApp OTP generated and queued for delivery.'

@@ -62,3 +62,8 @@ export class InternalServerError extends AppError {
   readonly statusCode = 500;
   readonly errorCode = 'INTERNAL_SERVER_ERROR';
 }
+
+export class GoogleApiError extends AppError {
+  readonly statusCode = 502;
+  readonly errorCode = 'GOOGLE_API_ERROR';
+}
